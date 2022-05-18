@@ -163,6 +163,7 @@ PerfServer::ConnectionCallback(
         if (!Context) {
             return QUIC_STATUS_OUT_OF_MEMORY;
         }
+        Context->ConnectionHandle = ConnectionHandle;
         QUIC_STREAM_CALLBACK_HANDLER Handler =
             [](HQUIC Stream, void* Context, QUIC_STREAM_EVENT* Event) -> QUIC_STATUS {
                 return ((PerfServer::StreamContext*)Context)->Server->
@@ -189,15 +190,22 @@ PerfServer::StreamCallback(
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_RECEIVE:
         if (!Context->ResponseSizeSet) {
-            uint8_t* Dest = (uint8_t*)&Context->ResponseSize;
+            uint8_t* Dest = (uint8_t*)&Context->Parameters;
             uint64_t Offset = Event->RECEIVE.AbsoluteOffset;
-            for (uint32_t i = 0; Offset < sizeof(uint64_t) && i < Event->RECEIVE.BufferCount; ++i) {
-                uint32_t Length = CXPLAT_MIN((uint32_t)(sizeof(uint64_t) - Offset), Event->RECEIVE.Buffers[i].Length);
+            for (uint32_t i = 0; Offset < sizeof(uint64_t) * 2 && i < Event->RECEIVE.BufferCount; ++i) {
+                uint32_t Length = CXPLAT_MIN((uint32_t)(sizeof(uint64_t) * 2 - Offset), Event->RECEIVE.Buffers[i].Length); 
                 memcpy(Dest + Offset, Event->RECEIVE.Buffers[i].Buffer, Length);
                 Offset += Length;
             }
-            if (Offset == sizeof(uint64_t)) {
-                Context->ResponseSize = CxPlatByteSwapUint64(Context->ResponseSize);
+            
+            if (Offset == sizeof(uint64_t) * 2) {
+                Context->ResponseSize = CxPlatByteSwapUint64(Context->Parameters[0]);
+                Context->TransferRate = CxPlatByteSwapUint64(Context->Parameters[1]);
+                if (Context->ResponseSize && Context->TransferRate) {
+                    Context->RateLimiter.reset(
+                        new(std::nothrow) TokenBucket(Context->TransferRate, Context->TransferRate + (Context->TransferRate >> 1)));
+                }
+            
                 Context->ResponseSizeSet = true;
             }
         }
@@ -207,6 +215,7 @@ PerfServer::StreamCallback(
         if (!Event->SEND_COMPLETE.Canceled) {
             SendResponse(Context, StreamHandle);
         }
+        delete ((QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         if (!Context->ResponseSizeSet) {
@@ -241,6 +250,10 @@ PerfServer::StreamCallback(
         break;
     }
     }
+    if (CxPlatTimeDiff64(Context->LastStatPrintTime, CxPlatTimeUs64()) >= 1000000) {
+        QuicPrintConnectionStatistics(MsQuic, Context->ConnectionHandle);
+        Context->LastStatPrintTime = CxPlatTimeUs64();
+    }
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -250,21 +263,37 @@ PerfServer::SendResponse(
     _In_ HQUIC StreamHandle
     )
 {
+    bool throttledByRateLimiter = false;
+
     while (Context->BytesSent < Context->ResponseSize &&
-           Context->OutstandingBytes < Context->IdealSendBuffer) {
+           Context->OutstandingBytes < Context->IdealSendBuffer && 
+           !throttledByRateLimiter) {
 
         uint64_t BytesLeftToSend = Context->ResponseSize - Context->BytesSent;
         uint32_t IoSize = Context->IoSize;
-        QUIC_BUFFER* Buffer = DataBuffer;
+
+        /*
+        if (Context->RateLimiter && Context->BytesSent >= 2 * 1000000) {
+            Context->RateLimiter.reset(new (std::nothrow) TokenBucket(Context->TransferRate * 2, Context->TransferRate * 2 + Context->TransferRate));
+        }
+        */
+        
+        if (Context->RateLimiter && !Context->RateLimiter->Consume(IoSize)) {
+            IoSize = 1;
+            throttledByRateLimiter = true;
+        }
+        
+        
         QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE;
 
         if ((uint64_t)IoSize >= BytesLeftToSend) {
             IoSize = (uint32_t)BytesLeftToSend;
-            Context->LastBuffer.Buffer = Buffer->Buffer;
-            Context->LastBuffer.Length = IoSize;
-            Buffer = &Context->LastBuffer;
             Flags = QUIC_SEND_FLAG_FIN;
         }
+        
+        QUIC_BUFFER* Buffer = new(std::nothrow) QUIC_BUFFER();
+        Buffer->Length = IoSize;
+        Buffer->Buffer = DataBuffer->Buffer;
 
         Context->BytesSent += IoSize;
         Context->OutstandingBytes += IoSize;
@@ -279,6 +308,7 @@ PerfServer::SendTcpResponse(
     _In_ TcpConnection* Connection
     )
 {
+    // TODO
     while (Context->BytesSent < Context->ResponseSize &&
            Context->OutstandingBytes < Context->IdealSendBuffer) {
 

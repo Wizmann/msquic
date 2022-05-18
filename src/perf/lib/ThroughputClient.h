@@ -16,6 +16,7 @@ Abstract:
 #include "PerfHelpers.h"
 #include "PerfBase.h"
 #include "PerfCommon.h"
+#include "TokenBucket.h"
 
 class ThroughputClient : public PerfBase {
 public:
@@ -80,6 +81,8 @@ private:
         uint64_t BytesCompleted{0};
         uint64_t StartTime{CxPlatTimeUs64()};
         uint64_t EndTime{0};
+        uint64_t LastStatPrintTime{CxPlatTimeUs64()};
+        HQUIC ConnectionHandle;
         QUIC_BUFFER LastBuffer;
         bool Complete{false};
         bool SendShutdown{false};
@@ -144,9 +147,12 @@ private:
     QUIC_ADDRESS_FAMILY RemoteFamily {QUIC_ADDRESS_FAMILY_UNSPEC};
     uint64_t UploadLength {0};
     uint64_t DownloadLength {0};
+    uint64_t TransferRate {0};
     uint32_t IoSize {0};
     uint32_t CibirIdLength {0};
     uint8_t CibirId[7]; // {offset, values}
+
+    UniquePtr<TokenBucket> RateLimiter;
 
     TcpEngine Engine;
     CXPLAT_LOCK TcpLock;

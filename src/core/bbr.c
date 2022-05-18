@@ -270,6 +270,15 @@ BbrBandwidthSamplerOnAppLimited(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+uint64_t
+BbrCongestionControlGetBandwidth(
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
+    )
+{
+    return WindowedFilterGetBest(&Cc->Bbr.BandwidthSampler.WindowedFilter);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 BbrBandwidthSamplerOnPacketAcked(
     _In_ BBR_BANDWIDTH_SAMPLER* b,
@@ -329,6 +338,7 @@ BbrBandwidthSamplerOnPacketAcked(
                 !AckedPacket->Flags.IsAppLimited) {
             WindowedFilterUpdate(&b->WindowedFilter, MeasuredBw, RttCounter);
         }
+        // printf("%lu %lu %lu %d\n", SendRate, AckRate, WindowedFilterGetBest(&b->WindowedFilter), AckedPacket->Flags.IsAppLimited);
     }
 }
 
@@ -339,15 +349,6 @@ BbrCongestionControlGetMinRtt(
     )
 {
     return Cc->Bbr.MinRttSampler.MinRtt;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-uint64_t
-BbrCongestionControlGetBandwidth(
-    _In_ const QUIC_CONGESTION_CONTROL* Cc
-    )
-{
-    return WindowedFilterGetBest(&Cc->Bbr.BandwidthSampler.WindowedFilter);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

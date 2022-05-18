@@ -15,6 +15,7 @@ Abstract:
 #include "PerfHelpers.h"
 #include "PerfBase.h"
 #include "PerfCommon.h"
+#include "TokenBucket.h"
 
 class PerfServer : public PerfBase {
 public:
@@ -93,9 +94,14 @@ private:
         bool RecvShutdown{false};
         uint64_t IdealSendBuffer{PERF_DEFAULT_SEND_BUFFER_SIZE};
         uint64_t ResponseSize{0};
+        uint64_t Parameters[2] = {0, 0};
         uint64_t BytesSent{0};
+        uint64_t TransferRate{0};
         uint64_t OutstandingBytes{0};
         uint32_t IoSize{PERF_DEFAULT_IO_SIZE};
+        uint64_t LastStatPrintTime{CxPlatTimeUs64()};
+        UniquePtr<TokenBucket> RateLimiter;
+        HQUIC ConnectionHandle;
         QUIC_BUFFER LastBuffer;
     };
 

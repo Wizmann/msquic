@@ -334,11 +334,13 @@ QuicPrintConnectionStatistics(
             &StatsSize,
             &Statistics))) {
         WriteOutput(
-            "[conn][%p] STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu\n",
+            "[conn][%p] STATS: Rtt=%llu, SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu CongWnd=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu\n",
             Connection,
+            (unsigned long long)Statistics.Rtt,
             (unsigned long long)Statistics.SendTotalPackets,
             (unsigned long long)Statistics.SendSuspectedLostPackets,
             (unsigned long long)Statistics.SendSpuriousLostPackets,
+            (unsigned long long)Statistics.SendCongestionWindow,
             (unsigned long long)Statistics.RecvTotalPackets,
             (unsigned long long)Statistics.RecvReorderedPackets,
             (unsigned long long)Statistics.RecvDroppedPackets,
