@@ -31,7 +31,7 @@ jobs:
       shell: pwsh
     - name: Install Perl
       if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@749328bfc0ac815c6d36a2464327a99d2784191e
+      uses: shogo82148/actions-setup-perl@2aa8ef47aa9132b67a3833333a2ce121ad721ef9
       with:
         perl-version: '5.34'
     - name: Install NASM
