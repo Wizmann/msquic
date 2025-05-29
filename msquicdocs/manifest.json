@@ -92,6 +92,16 @@
     },
     {
       "type": "Conceptual",
+      "source_relative_path": "docs/Execution.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/Execution.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
       "source_relative_path": "docs/FAQ.md",
       "output": {
         ".html": {
@@ -136,6 +146,36 @@
       "output": {
         ".html": {
           "relative_path": "docs/Platforms.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/PreviewFeatures.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/PreviewFeatures.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/QTIP.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/QTIP.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/ReceiveBuffer.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/ReceiveBuffer.html"
         }
       },
       "version": ""
@@ -286,6 +326,26 @@
       "output": {
         ".html": {
           "relative_path": "docs/api/ConnectionOpen.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ConnectionOpenInPartition.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ConnectionOpenInPartition.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ConnectionPoolCreate.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ConnectionPoolCreate.html"
         }
       },
       "version": ""
@@ -472,10 +532,30 @@
     },
     {
       "type": "Conceptual",
+      "source_relative_path": "docs/api/QUIC_CONNECTION_POOL_CONFIG.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/QUIC_CONNECTION_POOL_CONFIG.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
       "source_relative_path": "docs/api/QUIC_CREDENTIAL_CONFIG.md",
       "output": {
         ".html": {
           "relative_path": "docs/api/QUIC_CREDENTIAL_CONFIG.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/QUIC_HANDSHAKE_INFO.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/QUIC_HANDSHAKE_INFO.html"
         }
       },
       "version": ""
@@ -536,6 +616,26 @@
       "output": {
         ".html": {
           "relative_path": "docs/api/QUIC_STATUS.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/QUIC_STREAM_CALLBACK.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/QUIC_STREAM_CALLBACK.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/QUIC_STREAM_EVENT.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/QUIC_STREAM_EVENT.html"
         }
       },
       "version": ""
@@ -616,6 +716,16 @@
       "output": {
         ".html": {
           "relative_path": "docs/api/StreamOpen.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/StreamProvideReceiveBuffers.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/StreamProvideReceiveBuffers.html"
         }
       },
       "version": ""

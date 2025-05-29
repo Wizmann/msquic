@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -29,15 +29,15 @@
       <meta name="loc:changeTheme" content="Change theme">
       <meta name="loc:copy" content="Copy">
       <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../../../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
   </head>
-
-  <script type="module" src="./../../../public/docfx.min.js"></script>
-
-  <script>
-    const theme = localStorage.getItem('theme') || 'auto'
-    document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
-  </script>
-
 
   <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
     <header class="bg-body border-bottom">
@@ -54,7 +54,7 @@
             <div id="navbar">
               <form class="search" role="search" id="search">
                 <i class="bi bi-search"></i>
-                <input class="form-control" id="search-query" type="search" disabled="" placeholder="Search" autocomplete="off" aria-label="Search">
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
               </form>
             </div>
           </div>
@@ -63,23 +63,9 @@
     </header>
 
     <main class="container-xxl">
-      <div class="toc-offcanvas">
-        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
-          <div class="offcanvas-header">
-            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
-          </div>
-          <div class="offcanvas-body">
-            <nav class="toc" id="toc"></nav>
-          </div>
-        </div>
-      </div>
 
       <div class="content">
         <div class="actionbar">
-          <button class="btn btn-lg border-0 d-md-none" style="margin-top: -.65em; margin-left: -.8em" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
-            <i class="bi bi-list"></i>
-          </button>
 
           <nav id="breadcrumb"></nav>
         </div>
@@ -91,16 +77,19 @@
 <p>This page provides the install, setup and usage instructions for Windows Performance Analyzer (WPA) and use it to analyze MsQuic traces.</p>
 <h1 id="install-instructions">Install Instructions</h1>
 <p>The following are currently only possible on Windows. Other platforms may be supported by WPA in the future.</p>
-<p>The easiest way to use WPA is via the <code>./scripts/wpa.ps1</code> script, but additional detailed instructions can be found below.</p>
 <h2 id="install-wpa">Install WPA</h2>
+<p>Download the preview version from <a href="https://www.microsoft.com/store/productId/9N58QRW40DFW">the Windows Store</a> or (for MSFT internal) from <a href="http://aka.ms/getwpa">http://aka.ms/getwpa</a>.</p>
+<h2 id="download-msquic-wpa-plugin">Download MsQuic WPA Plugin</h2>
 <ol>
-<li>Download the preview version from <a href="https://www.microsoft.com/store/productId/9N58QRW40DFW">the Windows Store</a>.</li>
-<li>You should then be able to run WPA from: <code>$env:LOCALAPPDATA\Microsoft\WindowsApps\wpa.exe</code></li>
+<li>Navigate to our <a href="https://github.com/microsoft/msquic/actions/workflows/plugins.yml?query=branch%3Amain">GitHub Action</a> for building the plugin.</li>
+<li>Click on the latest build.</li>
+<li>Scroll to the bottom and download the <code>ptix_quictrace_Release</code> artifact.</li>
+<li>Extract the <code>.ptix</code> file.</li>
 </ol>
-<h2 id="install-msquic-wpa-plugin">Install MsQuic WPA Plugin</h2>
+<h2 id="install-the-plugin">Install the Plugin</h2>
 <ol>
-<li>Build the plugin via <code>QuicTrace.sln</code> or download it from the latest release (i.e. <a href="https://github.com/microsoft/msquic/releases/download/v1.0.0-129524/quic.wpa.zip">v1.0.0</a>).</li>
-<li>Update/create your WPA shortcut by adding <code>-addsearchdir &lt;path_to_quic_plugin_folder&gt;</code>.</li>
+<li>Open WPA and use the <code>Install Plugin</code> dialog to install the MsQuic WPA plugin.</li>
+<li>Restart WPA.</li>
 </ol>
 <h1 id="usage-instructions">Usage Instructions</h1>
 <p>WPA is extremely powerful. It can operate very quickly on multi-gigabyte trace files and let you slice &amp; dice the data many different ways to really drill down into what's going on.</p>
@@ -128,7 +117,9 @@
 <p>One of the built-in capabilities of WPA is the ability to analyze CPU trace information to see the CPU usage of the various call stacks in the code. For instance, in the above Flame Graph you can easily see that the most expensive function (58% of total CPU usage!) is <code>CxPlatEncrypt</code>.</p>
 <h3 id="linux">Linux</h3>
 <p>Linux perf command is one of the way to collect such information.</p>
-<pre><code class="lang-sh"># on Linux
+<pre><code class="lang-sh"># on Linux (kernel &gt; 5.10)
+sudo apt-get install -y linux-perf
+# on Linux (kernel &lt;= 5.10)
 sudo apt-get install -y linux-tools-`uname -r`
 # use your own options
 perf record -a -g -F 10 -o out.perf.data

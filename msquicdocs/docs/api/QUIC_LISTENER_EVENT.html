@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -29,15 +29,15 @@
       <meta name="loc:changeTheme" content="Change theme">
       <meta name="loc:copy" content="Copy">
       <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
   </head>
-
-  <script type="module" src="./../../public/docfx.min.js"></script>
-
-  <script>
-    const theme = localStorage.getItem('theme') || 'auto'
-    document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
-  </script>
-
 
   <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
     <header class="bg-body border-bottom">
@@ -54,7 +54,7 @@
             <div id="navbar">
               <form class="search" role="search" id="search">
                 <i class="bi bi-search"></i>
-                <input class="form-control" id="search-query" type="search" disabled="" placeholder="Search" autocomplete="off" aria-label="Search">
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
               </form>
             </div>
           </div>
@@ -77,7 +77,7 @@
 
       <div class="content">
         <div class="actionbar">
-          <button class="btn btn-lg border-0 d-md-none" style="margin-top: -.65em; margin-left: -.8em" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
             <i class="bi bi-list"></i>
           </button>
 
@@ -87,8 +87,15 @@
         <article data-uid="">
 <h1 id="quic_listener_event-structure">QUIC_LISTENER_EVENT structure</h1>
 
-<p>The payload for QUIC listener events.</p>
+<p>QUIC listener events and the corresponding payload</p>
 <h1 id="syntax">Syntax</h1>
+<pre><code class="lang-C">typedef enum QUIC_LISTENER_EVENT_TYPE {
+    QUIC_LISTENER_EVENT_NEW_CONNECTION      = 0,
+    QUIC_LISTENER_EVENT_STOP_COMPLETE       = 1,
+    QUIC_LISTENER_EVENT_DOS_MODE_CHANGED    = 2,
+} QUIC_LISTENER_EVENT_TYPE;
+</code></pre>
+<p>The payload for QUIC listener events.</p>
 <pre><code class="lang-C">typedef struct QUIC_LISTENER_EVENT {
     QUIC_LISTENER_EVENT_TYPE Type;
     union {
@@ -101,6 +108,10 @@
             BOOLEAN AppCloseInProgress  : 1;
             BOOLEAN RESERVED            : 7;
         } STOP_COMPLETE;
+        struct {
+            BOOLEAN DosModeEnabled : 1;
+            BOOLEAN RESERVED       : 7;
+        } DOS_MODE_CHANGED;
     };
 } QUIC_LISTENER_EVENT;
 </code></pre>
@@ -110,14 +121,26 @@
 <h1 id="remarks">Remarks</h1>
 <h2 id="quic_listener_event_new_connection">QUIC_LISTENER_EVENT_NEW_CONNECTION</h2>
 <p>This event is delivered when a new connection is received by the listener.</p>
+<h3 id="new_connection">NEW_CONNECTION</h3>
+<p>Details of the new connection are passed in the <code>NEW_CONNECTION</code> struct/union.</p>
 <p><code>Info</code></p>
 <p>This field indicates the <a href="QUIC_NEW_CONNECTION_INFO.html">QUIC_NEW_CONNECTION_INFO</a> structure for the new connection.</p>
 <p><code>Connection</code></p>
 <p>This field indicates the valid handle to the new incoming connection.</p>
 <h2 id="quic_listener_event_stop_complete">QUIC_LISTENER_EVENT_STOP_COMPLETE</h2>
 <p>This event is delivered when server app wants to stop receiving new incoming connections.</p>
+<h3 id="stop_complete">STOP_COMPLETE</h3>
+<p>Details of the listener stopping are indicated in <code>STOP_COMPLETE</code> struct/union.</p>
 <p><code>AppCloseInProgress</code></p>
 <p>This flag indicates the server has called <a href="ListenerClose.html">ListenerClose</a>.</p>
+<p><code>RESERVED</code></p>
+<p>This field reserved for future use. Do not use.</p>
+<h2 id="quic_listener_event_dos_mode_changed">QUIC_LISTENER_EVENT_DOS_MODE_CHANGED</h2>
+<p>This event indicates an automated change in the DoS mode on the listener object in the MsQuic library. This event is delivered only for listener objects that have opted in for DoS mode change events. Refer to the <a href="../Settings.html#Listener_Parameters">Listener Parameters</a> documentation for further information.</p>
+<h3 id="dos_mode_changed">DOS_MODE_CHANGED</h3>
+<p>Details of the DoS mode change is indicated in the <code>DOS_MODE_CHANGED</code> struct/union.</p>
+<p><code>DosModeEnabled</code></p>
+<p>If TRUE, DoS mode is currently enabled on the listener object, else DoS mode is currently disabled on the listener object.</p>
 <p><code>RESERVED</code></p>
 <p>This field reserved for future use. Do not use.</p>
 <h1 id="see-also">See Also</h1>

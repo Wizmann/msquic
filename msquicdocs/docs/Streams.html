@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -29,15 +29,15 @@
       <meta name="loc:changeTheme" content="Change theme">
       <meta name="loc:copy" content="Copy">
       <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
   </head>
-
-  <script type="module" src="./../public/docfx.min.js"></script>
-
-  <script>
-    const theme = localStorage.getItem('theme') || 'auto'
-    document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
-  </script>
-
 
   <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
     <header class="bg-body border-bottom">
@@ -54,7 +54,7 @@
             <div id="navbar">
               <form class="search" role="search" id="search">
                 <i class="bi bi-search"></i>
-                <input class="form-control" id="search-query" type="search" disabled="" placeholder="Search" autocomplete="off" aria-label="Search">
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
               </form>
             </div>
           </div>
@@ -77,7 +77,7 @@
 
       <div class="content">
         <div class="actionbar">
-          <button class="btn btn-lg border-0 d-md-none" style="margin-top: -.65em; margin-left: -.8em" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
             <i class="bi bi-list"></i>
           </button>
 
@@ -106,18 +106,33 @@
 <p>When calling <a href="api/StreamStart.html">StreamStart</a> the app passes a set of <code>QUIC_STREAM_START_FLAGS</code> flags to control the behavior. Starting the stream <strong>always</strong> results in a <code>QUIC_STREAM_EVENT_START_COMPLETE</code> event, regardless of success/fail or synchronous/asynchronous flags.</p>
 <p>For peer initiated streams, the app gets a <code>QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED</code> event on the connection. A stream is officially started when this event or the <code>QUIC_STREAM_EVENT_START_COMPLETE</code> event is received.</p>
 <h1 id="sending">Sending</h1>
-<p>An app can send on any locally initiated stream or a peer initiated bidirectional stream. The app uses the <a href="api/StreamSend.html">StreamSend</a> API send data. MsQuic holds on to any buffers queued via <a href="api/StreamSend.html">StreamSend</a> until they have been completed via the <code>QUIC_STREAM_EVENT_SEND_COMPLETE</code> event.</p>
+<p>An app can send on any locally initiated stream or a peer initiated bidirectional stream. The app uses the <a href="api/StreamSend.html">StreamSend</a> API to send data.</p>
+<p>MsQuic takes ownership of any buffers successfully queued via <a href="api/StreamSend.html">StreamSend</a>. Buffer ownership is
+returned to the application via the <code>QUIC_STREAM_EVENT_SEND_COMPLETE</code> event. The application must not free, reuse or
+otherwise access a buffer provided to <a href="api/StreamSend.html">StreamSend</a> until the matching
+<code>QUIC_STREAM_EVENT_SEND_COMPLETE</code> event.</p>
+<p>![Note]</p>
+<blockquote>
+<p><code>QUIC_STREAM_EVENT_SEND_COMPLETE</code> does not mean the data has been received by the peer application layer.
+It only means that MsQuic no longer needs the app send buffer and give the owernship back to the application. The app
+should <em>not</em> assume the data has been successfully transmitted based on this notification.</p>
+</blockquote>
 <h2 id="send-buffering">Send Buffering</h2>
-<p>There are two buffering modes for sending supported by MsQuic. The first mode has MsQuic buffer the stream data internally. As long as there is room to buffer the data, MsQuic will copy the data locally and then immediately complete the send back to the app, via the <code>QUIC_STREAM_EVENT_SEND_COMPLETE</code> event. If there is no room to copy the data, then MsQuic will hold onto the buffer until there is room.</p>
-<p>With this mode, the app can &quot;keep the pipe full&quot; using only a single outstanding send. It continually keeps a send pending on the stream. When the send is completed, the app immediately queues a send again with any new data it has.</p>
-<p>This is seen by many as the simplest design for apps, but does introduce an additional copy in the data path, which has some performance draw backs. <strong>This is the default MsQuic behavior.</strong></p>
-<p>The other buffering mode supported by MsQuic requires no internal copy of the data. MsQuic holds onto the app buffers until all the data has been acknowledged by the peer.</p>
-<p>To fill the pipe in this mode, the app is responsible for keeping enough sends pending at all times to ensure the connection doesn't go idle. MsQuic indicates the amount of data the app should keep pending in the <code>QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE</code> event. The app should always have at least two sends pending at a time. If only a single send is used, the connection can go idle for the time between that send is completed and the new send is queued.</p>
-<p>By default, this mode is not used. To enable this mode, the app must call <a href="api/SetParam.html">SetParam</a> on the connection with the <code>QUIC_PARAM_CONN_SEND_BUFFERING</code> parameter set to <code>FALSE</code>.</p>
+<p><strong>By default</strong>, MsQuic buffers the stream data internally when <a href="api/StreamSend.html">StreamSend</a> is called by an app.
+As long as there is room to buffer the data, MsQuic will copy the data locally and then immediately complete the send back to the app, via the <code>QUIC_STREAM_EVENT_SEND_COMPLETE</code> event.
+If there is no room to copy the data, then MsQuic will hold onto the buffer until there is room.</p>
+<p>With this mode, the app can easily &quot;keep the pipe full&quot; using only a single outstanding send: It continually keeps a single send pending on the stream. As soon as the send is completed, the app immediately queues a new send again with any new data it needs to transmit.</p>
+<p>This is seen by many as the simplest design for apps, and it allows great performances by ensuring MsQuic send path never runs idle.
+However, internal buffering introduces an additional copy in the data path, which can be a performance draw back for some application.</p>
+<p>MsQuic also supports another buffering mode that requires no internal copy of the data: MsQuic holds onto the app buffers until all the data has been acknowledged by the peer.</p>
+<p>To fill the pipe in this mode, the app is responsible for keeping enough sends pending at all times to ensure the connection doesn't go idle.
+MsQuic indicates the amount of data the app should keep pending in the <code>QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE</code> event.
+The app should always have at least two sends pending at a time: If only a single send is used, the connection will go idle for the interval of time between when a send is completed and a new send is queued.</p>
+<p>To disable internal send buffering and use the second mode, the app must set <code>SendBufferingEnabled</code> to <code>FALSE</code> through <a href="Settings.html">MsQuic settings</a>.</p>
 <h2 id="send-shutdown">Send Shutdown</h2>
 <p>The send direction can be shut down in three different ways:</p>
 <ul>
-<li><p><strong>Graceful</strong> - The sender can gracefully shut down the send direction by calling <a href="api/StreamShutdown.html">StreamShutdown</a> with the <code>QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL</code> flag or by including the <code>QUIC_SEND_FLAG_FIN</code> flag on the last <a href="api/StreamSend.html">StreamSend</a> call. In this scenario all data will be delivered to the peer and then the peer is informed the stream has been gracefully shut down.</p>
+<li><p><strong>Graceful</strong> - The sender can gracefully shut down the send direction by calling <a href="api/StreamShutdown.html">StreamShutdown</a> with the <code>QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL</code> flag or by including the <code>QUIC_SEND_FLAG_FIN</code> flag on the last <a href="api/StreamSend.html">StreamSend</a> call. In this scenario all data will first be delivered to the peer, then the peer is informed the stream has been gracefully shut down.</p>
 </li>
 <li><p><strong>Sender Abort</strong> - The sender can abortively shut down the send direction by calling <a href="api/StreamShutdown.html">StreamShutdown</a> with the <code>QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND</code> flag. In this scenario, all outstanding sends are immediately canceled and are not delivered to the peer. The peer is immediately informed of the abort.</p>
 </li>
@@ -132,20 +147,91 @@
 <p>If a stream gets canceled because it is in 'cancel on loss' mode, a <code>QUIC_STREAM_EVENT_CANCEL_ON_LOSS</code> event will get emitted. The event allows the app to provide an error code that is communicated to the peer via a <code>QUIC_STREAM_EVENT_PEER_SEND_ABORTED</code> event.</p>
 <h1 id="receiving">Receiving</h1>
 <p>Data is received and delivered to apps via the <code>QUIC_STREAM_EVENT_RECEIVE</code> event. The event indicates zero, one or more contiguous buffers up to the application.</p>
-<p>Typically, the buffer count is one, which means that most events will include a single buffer containing the received data.</p>
+<p>When using default settings, the buffer count is 1 the majority of the time, which means that most events will include a single buffer containing the received data.
+The application can optimize its processing for that case but should be ready to handle any number of <code>QUIC_BUFFER</code>s.</p>
 <p>When the buffer count is 0, it signifies the reception of a QUIC frame with empty data, which also indicates the end of stream data.</p>
-<p>Currently, the maximum buffer count is 2 in the case of partial receive, where only a portion of the buffer data is consumed (as explained below). However, it is strongly advised not to assume in application code that the upper limit is always 2. This caution is important because future releases may incorporate multiple circular buffers to enhance performance, leading to potential changes in the buffer count limit.</p>
+<h2 id="summary---common-handling-of-receive-data-events">Summary - Common handling of receive data events</h2>
+<p>Here is a quick overview of receiving data in <em>some</em> common scenarios.</p>
+<p>If the application...</p>
+<ul>
+<li>processes all the received data synchronously in the stream event handler, <code>QUIC_STREAM_EVENT.RECEIVE.TotalBufferLength</code> parameter must be left unchanged and <code>QUIC_STATUS_SUCCESS</code> must be returned from the handler.</li>
+<li>could process only part of the received buffer synchronously in the stream event handler call and wants to process the remaining data in a subsequent event handler call, it <strong>must</strong> be indicated to MsQuic by setting this parameter to the byte count processed and returning <code>QUIC_STATUS_CONTINUE</code> from this call.</li>
+<li>desires to process the received data asynchronously, it should return <code>QUIC_STATUS_PENDING</code> from the event handler call.</li>
+</ul>
+<p>Read on further for details on all possible scenarios of receiving data using the MsQuic library.</p>
+<h2 id="handling-a-receive-event">Handling a receive event</h2>
 <p>The app then may respond to the event in a number of ways:</p>
-<h2 id="synchronous-vs-asynchronous">Synchronous vs Asynchronous</h2>
+<h3 id="synchronous-vs-asynchronous">Synchronous vs Asynchronous</h3>
 <p>The app has the option of either processing the received data in the callback (synchronous) or queuing the work to a separate thread (asynchronous). If the app processes the data synchronously it must do so in a timely manner. Any significant delays will delay other QUIC processing (such as sending acknowledgments), which can cause protocol issues (dropped connections).</p>
 <p>If the app wants to queue the data to a separate thread, the app must return <code>QUIC_STATUS_PENDING</code> from the receive callback. This informs MsQuic that the app still has an outstanding reference on the buffers, and it will not modify or free them. Once the app is done with the buffers it must call <a href="api/StreamReceiveComplete.html">StreamReceiveComplete</a>.</p>
-<h2 id="partial-data-acceptance">Partial Data Acceptance</h2>
+<p>The lifetime of the <code>QUIC_BUFFER</code>s themselves is limited to the scope of the callback: when handling the received data
+asynchronously, the <code>QUIC_BUFFER</code>s must be copied.</p>
+<h3 id="partial-data-acceptance">Partial Data Acceptance</h3>
 <p>Whenever the app gets the <code>QUIC_STREAM_EVENT_RECEIVE</code> event, it can partially accept/consume the received data.</p>
-<p>For synchronous receives, the app indicates how much of the data it accepted via the <strong>TotalBufferLength</strong> variable in the payload of the <code>QUIC_STREAM_EVENT_RECEIVE</code> event. On input, that variable indicates the total amount of data being indicated. On output (return from the callback), the variable is taken as how much data the app consumed. By default, if the variable is left unmodified, then all data is assumed to be accepted.</p>
-<p>For asynchronous receives, the app indicates how much of the data it accepted via the <strong>BufferLength</strong> parameter passed into the <a href="api/StreamReceiveComplete.html">StreamReceiveComplete</a> API.</p>
+<p>For synchronous receives, the app indicates how much of the data it accepted via the <code>TotalBufferLength</code> variable in the payload of the <code>QUIC_STREAM_EVENT_RECEIVE</code> event. On input, that variable indicates the total amount of data being indicated. On output (return from the callback), the variable is taken as how much data the app consumed. By default, if the variable is left unmodified, then all data is assumed to be accepted.</p>
+<p>For asynchronous receives, the app indicates how much of the data it accepted via the <code>BufferLength</code> parameter passed into the <a href="api/StreamReceiveComplete.html">StreamReceiveComplete</a> API.</p>
 <p>Any value less than or equal to the initial <strong>TotalBufferLength</strong> value is allowed, including zero.</p>
 <p>Whenever a receive isn't fully accepted by the app, additional receive events are immediately disabled. The app is assumed to be at capacity and not able to consume more until further indication. To re-enable receive callbacks, the app must call <a href="api/StreamReceiveSetEnabled.html">StreamReceiveSetEnabled</a>.</p>
 <p>There are cases where an app may want to partially accept the current data, but still immediately get a callback with the rest of the data. To do this (only works in the synchronous flow) the app must return <code>QUIC_STATUS_CONTINUE</code>.</p>
+<h2 id="receive-modes">Receive Modes</h2>
+<p>Options can be used to alter MsQuic default receive notification behavior:</p>
+<h3 id="multi-receive-mode">Multi-Receive Mode</h3>
+<p>Multi-receive mode is a connection wide option allowing multiple receive notification to be pending simultaneously.
+It is enabled by setting <a href="api/QUIC_SETTINGS.html"><code>StreamMultiReceiveEnabled</code></a> in connection parameters.</p>
+<p>For streams created when the connection is in Multi-mode receive, MsQuic can keep indicating <code>QUIC_STREAM_EVENT_RECEIVE</code> before the application completes the previous one.
+This means that the application must be able to handle a new <code>QUIC_STREAM_EVENT_RECEIVE</code> even if it returned <code>QUIC_STATUS_PENDING</code> previously and has not called <a href="api/StreamReceiveComplete.html"><code>StreamReceiveComplete</code></a> yet.</p>
+<p>MsQuic will also keep indicating receive notifications when the application accepts the data partially. The bytes that have not been accepted by the application won't be indicated again: the application must call <a href="api/StreamReceiveComplete.html">StreamReceiveComplete</a> in the future to accept them.</p>
+<p>To handle multi-receive mode properly, the application must keep track of the total number of bytes received on the stream (the sum of all <code>TotalBufferLength</code>).
+The number of calls to <a href="api/StreamReceiveComplete.html"><code>StreamReceiveComplete</code></a> does not need to be equal to the number of receive notification, but the total number of bytes completed must eventually be equal to the total number of bytes received.</p>
+<p>Multi-receive mode manages its internal receive buffer differently and is more efficient for continuous receiving with asynchronous processing.</p>
+<h3 id="app-owned-buffer-mode">App-Owned Buffer Mode</h3>
+<p>App-owned buffer mode is a per-stream option allowing the application to provide its own receive memory buffers.
+Enabling app-owned mode is done differently depending on whether the stream is created locally or from the peer and is discussed below.</p>
+<p>When in app-owned mode, the application can call <a href="api/StreamProvideReceiveBuffers.html"><code>StreamProvideReceiveBuffers</code></a> to provide a list of memory buffers to MsQuic.
+<a href="api/StreamProvideReceiveBuffers.html"><code>StreamProvideReceiveBuffers</code></a> can be called at any time on a valid stream in app-owned mode, potentially inline from a notification handler.
+If called several times, the buffer provided through subsequent calls are added to the list.</p>
+<p>MsQuic will fill the provided buffer(s) with received data, in the order they have been provided. Receive notifications will be emitted as normal,
+indicating a list of <code>QUIC_BUFFER</code>s pointing to the application provided buffer(s).
+Note that up to the number of buffers the application provided can be indicated at once, and that only part of a buffer can be indicated.
+There is no guarantee the <code>QUIC_BUFFER</code>s indicated in a receive notification will match the ones the application provided.</p>
+<p>The application is responsible for tracking the amount of data received and when a buffer it provided has been fully used.
+The application regains full ownership of a buffer after it get a receive notification for all bytes in the buffer and accept them by calling <a href="api/StreamReceiveComplete.html">StreamReceiveComplete</a>.
+If the application accepts all the buffer's bytes <strong>inline</strong> from the receive notification, by returning <code>QUIC_STATUS_SUCCESS</code> and setting <code>TotalBufferLength</code> appropriately,
+it can free or reuse the buffer while in the notification handler.</p>
+<p>For an application, providing receive buffers can improve performances by saving a copy: MsQuic places data directly in its final destination.
+However, it comes with a large complexity overhead for the application, both in term of memory management and in term of flow control:
+an application providing too much or too little buffer space could negatively impact performances.
+Because of this, app-owned mode should be considered an advanced feature and used with caution.</p>
+<blockquote>
+<p><strong>Note</strong>: As of now, app-owned buffer mode is not compatible with multi-receive mode. If multi-receive mode is enabled for the connection and app-owned mode is enabled on a stream, that specific stream will behave as if multi-receive mode was disabled. This may change in the future.</p>
+</blockquote>
+<h4 id="locally-initiated-streams">Locally Initiated Streams</h4>
+<p>To use app-owned buffers on a locally created stream, the flag <code>QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS</code> must be provided to the <a href="api/StreamOpen.html"><code>StreamOpen</code></a>.</p>
+<p>Before starting the stream with <a href="api/StreamStart.html"><code>StreamStart</code></a>, the application should call <a href="api/StreamProvideReceiveBuffers.html"><code>StreamProvideReceiveBuffers</code></a> to provide some initial buffers.</p>
+<blockquote>
+<p><strong>Note</strong>: This is only relevant for a bidirectional stream, since a locally created unidirectional stream cannot receive data.</p>
+</blockquote>
+<h4 id="peer-initiated-streams">Peer Initiated Streams</h4>
+<p>To use app-owned buffers on a peer initiated stream, the application must call <a href="api/StreamProvideReceiveBuffers.html"><code>StreamProvideReceiveBuffers</code></a> inline when handling the <code>QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED</code> notification.</p>
+<p>When called inline while handling <code>QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED</code>, <a href="api/StreamProvideReceiveBuffers.html"><code>StreamProvideReceiveBuffers</code></a> enables app-owned buffers and provides some initial buffers. This is the only situation where it is allowed to call <a href="api/StreamProvideReceiveBuffers.html"><code>StreamProvideReceiveBuffers</code></a> on a stream that is not already in app-owned buffers mode. After this initial call, <a href="api/StreamProvideReceiveBuffers.html"><code>StreamProvideReceiveBuffers</code></a> can be called at any time to provide more buffer space, until the stream is closed.</p>
+<h4 id="initial-buffer-space">Initial Buffer Space</h4>
+<p>As part of the connection establishment, QUIC exchanges initial stream flow control limit as part of the transport parameters, defining the amount of data that each peer will be allowed to send on a newly created stream. An application can define these limits through <code>StreamRecvWindowBidiLocalDefault</code>, <code>StreamRecvWindowBidiRemoteDefault</code> and <code>StreamRecvWindowUnidiDefault</code> in <a href="api/QUIC_SETTINGS.html"><code>QUIC_SETTINGS</code></a>.</p>
+<p>When using a stream in app-owned mode, the application should generally provide enough buffer space to fully contain the initial receive window, since a peer could imediately send that amount of data.
+MsQuic does not enforce it, and it is legal for an application to provide less buffer space than the initial receive window if it is confident that the amount of buffer provided is large enough to handle all the data sent by the peer. However, if more data is received than can be stored in the buffers provided by the application, the entire <strong>connection</strong> will be terminated.</p>
+<p>After the initial receive window is full, flow control will ensure that the peer does not send more data than there is buffer space available.
+However, the application should still provide enough buffer space to keep flow control from impacting performances.</p>
+<h2 id="receive-shutdown">Receive Shutdown</h2>
+<p>The receiver can abortively shutdown a stream receive direction by calling <a href="api/StreamShutdown.html"><code>StreamShutdown</code></a>
+with the <code>QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE</code> option.</p>
+<h1 id="closing-a-stream">Closing a Stream</h1>
+<p>Once a stream has been shutdown (in both direction for a bi-directional stream), the application receives a
+<code>QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE</code> event.</p>
+<p>The application must then close the stream using <a href="api/StreamClose.html"><code>StreamClose</code></a>, and can release its context
+pointer safely once the call returns.</p>
+<p>If the app closes a stream before it is shutdown, the stream will be shutdown abortively with an error code of <code>0</code>.
+This should be avoided; instead the app should abortively shutdown the stream first with a meaningful error code.
+It is possible for an application to abortively shutdown a stream and immediately close it from the same thread,
+without waiting for the <code>QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE</code> event.</p>
 
 </article>
 

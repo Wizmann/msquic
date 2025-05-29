@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -29,15 +29,15 @@
       <meta name="loc:changeTheme" content="Change theme">
       <meta name="loc:copy" content="Copy">
       <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
   </head>
-
-  <script type="module" src="./../public/docfx.min.js"></script>
-
-  <script>
-    const theme = localStorage.getItem('theme') || 'auto'
-    document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
-  </script>
-
 
   <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
     <header class="bg-body border-bottom">
@@ -54,7 +54,7 @@
             <div id="navbar">
               <form class="search" role="search" id="search">
                 <i class="bi bi-search"></i>
-                <input class="form-control" id="search-query" type="search" disabled="" placeholder="Search" autocomplete="off" aria-label="Search">
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
               </form>
             </div>
           </div>
@@ -77,7 +77,7 @@
 
       <div class="content">
         <div class="actionbar">
-          <button class="btn btn-lg border-0 d-md-none" style="margin-top: -.65em; margin-left: -.8em" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
             <i class="bi bi-list"></i>
           </button>
 
@@ -87,8 +87,8 @@
         <article data-uid="">
 <h1 id="building-msquic">Building MsQuic</h1>
 
-<p>First, clone the repo recursively or run <code>git submodule update --init --recursive</code>
-to get all the submodules.</p>
+<p>First, clone the repo recursively: <code>git clone --recurse-submodules https://github.com/microsoft/msquic.git</code></p>
+<p>For existing repositories, run <code>git submodule update --init --recursive</code> to get all the submodules.</p>
 <h1 id="source-code">Source Code</h1>
 <p>The source (found in the <code>src</code> directory) is divided into several directories:</p>
 <ul>
@@ -109,18 +109,28 @@ to get all the submodules.</p>
 <p>Then you will need to <strong>manually</strong> launch &quot;PowerShell 7&quot; to continue. This install does not replace the built-in version of PowerShell.</p>
 <h2 id="install-on-linux">Install on Linux</h2>
 <p>You can find the full installation instructions for PowerShell on Linux <a href="https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?">here</a>. For Ubuntu you can run the following:</p>
-<pre><code class="lang-PowerShell"># Download the Microsoft repository GPG keys
-wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb
-
-# Register the Microsoft repository GPG keys
-sudo dpkg -i packages-microsoft-prod.deb
-
-# Update the list of products
+<pre><code class="lang-sh"># Update the list of packages
 sudo apt-get update
 
-# Enable the &quot;universe&quot; repositories
-sudo add-apt-repository universe
+# Install pre-requisite packages.
+sudo apt-get install -y wget apt-transport-https software-properties-common
 
+# Get the version of Ubuntu
+source /etc/os-release
+
+# Download the Microsoft repository keys
+wget -q https://packages.microsoft.com/config/ubuntu/$VERSION_ID/packages-microsoft-prod.deb
+
+# Register the Microsoft repository keys
+sudo dpkg -i packages-microsoft-prod.deb
+
+# Delete the Microsoft repository keys file
+rm packages-microsoft-prod.deb
+
+# Update the list of packages after we added packages.microsoft.com
+sudo apt-get update
+
+###################################
 # Install PowerShell
 sudo apt-get install -y powershell
 
@@ -147,11 +157,11 @@ sudo dpkg -i libssl1.0.0_1.0.2g-1ubuntu4.18_amd64.deb
 <p>Then you will need to manually run &quot;pwsh&quot; to continue.</p>
 <h1 id="building-with-powershell">Building with PowerShell</h1>
 <h2 id="install-dependencies">Install Dependencies</h2>
-<p>In order to install the necessary dependencies, a copy of the .NET Core 3.1 SDK is required. Go to the following location and find the install page for your platform.</p>
+<p>In order to install the necessary dependencies, a copy of the .NET Core 3.1 SDK (or newer, such as .NET 9 SDK), is required. Go to the following location and find the install page for your platform.</p>
 <ul>
 <li><a href="https://docs.microsoft.com/en-us/dotnet/core/install/">.NET Core</a></li>
 </ul>
-<p>After installing .NET Core, you will need to restart your terminal.</p>
+<p>After installing .NET [Core] SDK, you may need to restart your terminal.</p>
 <p>For the very first time you build, it's recommend to make sure you have all the dependencies installed. You can ensure this by running:</p>
 <pre><code class="lang-PowerShell">./scripts/prepare-machine.ps1
 </code></pre>
@@ -212,6 +222,62 @@ to install CMake.</p>
 <pre><code>sudo dnf install openssl-devel
 sudo dnf install libatomic
 </code></pre>
+<h4 id="linux-xdp">Linux XDP</h4>
+<p>Linux XDP is experimentally supported on amd64 &amp;&amp; Ubuntu 22.04LTS.
+Commands below install dependencies and setup runtime environment.
+<strong><span style="color:red;">WARN: This might break your system by installing Ubuntu 24.04LTS packages on ubuntu 22.04.Do not run on production environment and need to understand the side effect. You can workaround this prompt by <code>-ForceXdpInstall</code> </span></strong></p>
+<pre><code class="lang-sh">$ pwsh ./scripts/prepare-machine.ps1 -UseXdp
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Linux XDP installs dependencies from Ubuntu 24.04 packages, which should affect your environment
+You need to understand the impact of this on your environment before proceeding
+Type 'YES' to proceed: YES
+
+or
+
+$ pwsh ./scripts/prepare-machine.ps1 -UseXdp -ForceXdpInstall
+$ pwsh ./scripts/build.ps1 -UseXdp
+</code></pre>
+<p><code>./scripts/prepare-machine.ps1</code> internally does the below commands. This might break your environment.</p>
+<pre><code class="lang-sh"># for libxdp v1.4.2 on Ubuntu 22.04. Ubuntu 24.04 doesn't need this step
+sudo apt-add-repository &quot;deb http://mirrors.kernel.org/ubuntu noble main&quot; -y
+
+# install runtime dependencies
+sudo apt-get install -y libxdp1 libbpf1 libnl-3-200 libnl-route-3-200 libnl-genl-3-200
+
+# install build dependencies
+sudo apt-get --no-install-recommends -y install libxdp-dev libbpf-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev libc6-dev-i386
+
+# Optional. This is required when you run test with duonic (XDP capable virtual nic pair)
+sudo apt-get -y install iproute2 iptables
+sudo ./scripts/duonic.sh install
+</code></pre>
+<p>Test</p>
+<pre><code class="lang-sh"># &quot;sudo&quot; and --duoNic required
+# You can explicitly specify directory of datapath_raw_xdp_kern.o by MSQUIC_XDP_OBJECT_PATH
+# By default, libmsquic.so searchs for same directory as its executable
+# If something failed, fallback to normal socket
+sudo ./artifacts/bin/linux/x64_Debug_quictls/msquictest --duoNic
+</code></pre>
+<p><strong>Q&amp;A</strong></p>
+<ul>
+<li>Q: Is this workload really running on XDP?
+A: If you have the <code>xdp-dump</code> command, try using <code>sudo xdp-dump --list-interfaces</code>. The <code>xdp_main</code> function is located in <code>src/platform/datapath_raw_xdp_linux_kern.c</code>. If none of the interfaces load the XDP program, something must be wrong.</li>
+</ul>
+<pre><code>$ sudo ./xdp-tools/xdp-dump/xdpdump --list-interfaces
+Interface        Prio  Program name      Mode     ID   Tag               Chain actions
+--------------------------------------------------------------------------------------
+lo                     &lt;No XDP program loaded!&gt;
+eth0                   &lt;No XDP program loaded!&gt;
+docker0                &lt;No XDP program loaded!&gt;
+duo2                   xdp_dispatcher    native   608211 4d7e87c0d30db711
+ =&gt;              50     xdp_main                  608220 c8fcabdd9e3895f3  XDP_PASS
+duo1                   xdp_dispatcher    native   608225 4d7e87c0d30db711
+ =&gt;              50     xdp_main                  608228 c8fcabdd9e3895f3  XDP_PASS
+</code></pre>
+<ul>
+<li>Q: Is Ubuntu 20.04LTS supported?
+A: Not officially, but you can still <strong>build</strong> it by running <code>apt-get upgrade linux-libc-dev</code>. Please be aware of potential side effects from the <strong>upgrade</strong>.</li>
+</ul>
 <h3 id="macos">macOS</h3>
 <p>The build needs CMake and compiler.</p>
 <pre><code>brew install cmake
