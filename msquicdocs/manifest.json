@@ -52,10 +52,10 @@
     },
     {
       "type": "Conceptual",
-      "source_relative_path": "docs/CredScan.md",
+      "source_relative_path": "docs/CIBIR.md",
       "output": {
         ".html": {
-          "relative_path": "docs/CredScan.html"
+          "relative_path": "docs/CIBIR.html"
         }
       },
       "version": ""
@@ -66,16 +66,6 @@
       "output": {
         ".html": {
           "relative_path": "docs/Deployment.html"
-        }
-      },
-      "version": ""
-    },
-    {
-      "type": "Conceptual",
-      "source_relative_path": "docs/Development.md",
-      "output": {
-        ".html": {
-          "relative_path": "docs/Development.html"
         }
       },
       "version": ""
@@ -132,6 +122,16 @@
     },
     {
       "type": "Conceptual",
+      "source_relative_path": "docs/OpenSSLSymbolPrefix.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/OpenSSLSymbolPrefix.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
       "source_relative_path": "docs/PGO.md",
       "output": {
         ".html": {
@@ -166,16 +166,6 @@
       "output": {
         ".html": {
           "relative_path": "docs/QTIP.html"
-        }
-      },
-      "version": ""
-    },
-    {
-      "type": "Conceptual",
-      "source_relative_path": "docs/ReceiveBuffer.md",
-      "output": {
-        ".html": {
-          "relative_path": "docs/ReceiveBuffer.html"
         }
       },
       "version": ""
@@ -232,20 +222,10 @@
     },
     {
       "type": "Conceptual",
-      "source_relative_path": "docs/TLS.md",
+      "source_relative_path": "docs/TaskManagement.md",
       "output": {
         ".html": {
-          "relative_path": "docs/TLS.html"
-        }
-      },
-      "version": ""
-    },
-    {
-      "type": "Conceptual",
-      "source_relative_path": "docs/TSG.md",
-      "output": {
-        ".html": {
-          "relative_path": "docs/TSG.html"
+          "relative_path": "docs/TaskManagement.html"
         }
       },
       "version": ""
@@ -262,10 +242,30 @@
     },
     {
       "type": "Conceptual",
+      "source_relative_path": "docs/TroubleshootingGuide.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/TroubleshootingGuide.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
       "source_relative_path": "docs/Versions.md",
       "output": {
         ".html": {
           "relative_path": "docs/Versions.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/XDP.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/XDP.html"
         }
       },
       "version": ""
@@ -612,6 +612,16 @@
     },
     {
       "type": "Conceptual",
+      "source_relative_path": "docs/api/QUIC_STATELESS_RETRY_CONFIG.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/QUIC_STATELESS_RETRY_CONFIG.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
       "source_relative_path": "docs/api/QUIC_STATUS.md",
       "output": {
         ".html": {
@@ -646,6 +656,16 @@
       "output": {
         ".html": {
           "relative_path": "docs/api/RegistrationClose.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/RegistrationClose2.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/RegistrationClose2.html"
         }
       },
       "version": ""
@@ -789,6 +809,92 @@
         },
         ".json": {
           "relative_path": "docs/api/toc.json"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/contrib/CredScan.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/contrib/CredScan.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/contrib/Development.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/contrib/Development.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/contrib/ReceiveBuffer.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/contrib/ReceiveBuffer.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/contrib/ReleaseGuide.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/contrib/ReleaseGuide.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/contrib/TLS.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/contrib/TLS.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "docs/contrib/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "docs/contrib/toc.html"
+        },
+        ".json": {
+          "relative_path": "docs/contrib/toc.json"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/experimental/RDMA.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/experimental/RDMA.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "docs/experimental/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "docs/experimental/toc.html"
+        },
+        ".json": {
+          "relative_path": "docs/experimental/toc.json"
         }
       },
       "version": ""

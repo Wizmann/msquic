@@ -174,7 +174,7 @@ sudo dpkg -i libssl1.0.0_1.0.2g-1ubuntu4.18_amd64.deb
 <ul>
 <li>C++ CMake tools for Windows</li>
 <li>MSVC v142 - VS 2019 (or 2022) C++ (<em>Arch</em>) build tools</li>
-<li>Windows SDK</li>
+<li><a href="https://developer.microsoft.com/en-us/windows/downloads/windows-sdk">Windows SDK</a> version 10.0.26100.0 or newer</li>
 </ul>
 </li>
 <li>Latest <a href="https://insider.windows.com/en-us/">Windows Insider</a> builds (required for SChannel build)</li>
@@ -197,6 +197,11 @@ Supported only by Windows currently.</p>
 <p>For more info, take a look at the <a href="../scripts/build.ps1">build.ps1</a> script.</p>
 <h2 id="build-output">Build Output</h2>
 <p>By default the build output will go in the <code>build</code> folder and the final build binaries in the <code>artifacts</code> folder. Under that it will create per-platform folders with subfolders for architecture/tls combinations. This allows for building different platforms and configurations at the same time.</p>
+<h2 id="updating-clog-sidecar">Updating Clog Sidecar</h2>
+<p>Some code changes such as adding/updating new MsQuic traces require updating the CLOG sidecar for successful Linux builds. This is done by running the following command:</p>
+<pre><code class="lang-PowerShell">./scripts/update-sidecar.ps1
+</code></pre>
+<p>This makes any necessary updates to the clog sidecar manifest and the generated files under <code>src/generated/</code> folder. The modified files must be committed along with the rest of the code changes for addressing the Linux build failures.</p>
 <h1 id="building-with-cmake">Building with CMake</h1>
 <p>The following section details how to build MsQuic purely with CMake commands.</p>
 <blockquote>
@@ -222,62 +227,6 @@ to install CMake.</p>
 <pre><code>sudo dnf install openssl-devel
 sudo dnf install libatomic
 </code></pre>
-<h4 id="linux-xdp">Linux XDP</h4>
-<p>Linux XDP is experimentally supported on amd64 &amp;&amp; Ubuntu 22.04LTS.
-Commands below install dependencies and setup runtime environment.
-<strong><span style="color:red;">WARN: This might break your system by installing Ubuntu 24.04LTS packages on ubuntu 22.04.Do not run on production environment and need to understand the side effect. You can workaround this prompt by <code>-ForceXdpInstall</code> </span></strong></p>
-<pre><code class="lang-sh">$ pwsh ./scripts/prepare-machine.ps1 -UseXdp
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-Linux XDP installs dependencies from Ubuntu 24.04 packages, which should affect your environment
-You need to understand the impact of this on your environment before proceeding
-Type 'YES' to proceed: YES
-
-or
-
-$ pwsh ./scripts/prepare-machine.ps1 -UseXdp -ForceXdpInstall
-$ pwsh ./scripts/build.ps1 -UseXdp
-</code></pre>
-<p><code>./scripts/prepare-machine.ps1</code> internally does the below commands. This might break your environment.</p>
-<pre><code class="lang-sh"># for libxdp v1.4.2 on Ubuntu 22.04. Ubuntu 24.04 doesn't need this step
-sudo apt-add-repository &quot;deb http://mirrors.kernel.org/ubuntu noble main&quot; -y
-
-# install runtime dependencies
-sudo apt-get install -y libxdp1 libbpf1 libnl-3-200 libnl-route-3-200 libnl-genl-3-200
-
-# install build dependencies
-sudo apt-get --no-install-recommends -y install libxdp-dev libbpf-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev libc6-dev-i386
-
-# Optional. This is required when you run test with duonic (XDP capable virtual nic pair)
-sudo apt-get -y install iproute2 iptables
-sudo ./scripts/duonic.sh install
-</code></pre>
-<p>Test</p>
-<pre><code class="lang-sh"># &quot;sudo&quot; and --duoNic required
-# You can explicitly specify directory of datapath_raw_xdp_kern.o by MSQUIC_XDP_OBJECT_PATH
-# By default, libmsquic.so searchs for same directory as its executable
-# If something failed, fallback to normal socket
-sudo ./artifacts/bin/linux/x64_Debug_quictls/msquictest --duoNic
-</code></pre>
-<p><strong>Q&amp;A</strong></p>
-<ul>
-<li>Q: Is this workload really running on XDP?
-A: If you have the <code>xdp-dump</code> command, try using <code>sudo xdp-dump --list-interfaces</code>. The <code>xdp_main</code> function is located in <code>src/platform/datapath_raw_xdp_linux_kern.c</code>. If none of the interfaces load the XDP program, something must be wrong.</li>
-</ul>
-<pre><code>$ sudo ./xdp-tools/xdp-dump/xdpdump --list-interfaces
-Interface        Prio  Program name      Mode     ID   Tag               Chain actions
---------------------------------------------------------------------------------------
-lo                     &lt;No XDP program loaded!&gt;
-eth0                   &lt;No XDP program loaded!&gt;
-docker0                &lt;No XDP program loaded!&gt;
-duo2                   xdp_dispatcher    native   608211 4d7e87c0d30db711
- =&gt;              50     xdp_main                  608220 c8fcabdd9e3895f3  XDP_PASS
-duo1                   xdp_dispatcher    native   608225 4d7e87c0d30db711
- =&gt;              50     xdp_main                  608228 c8fcabdd9e3895f3  XDP_PASS
-</code></pre>
-<ul>
-<li>Q: Is Ubuntu 20.04LTS supported?
-A: Not officially, but you can still <strong>build</strong> it by running <code>apt-get upgrade linux-libc-dev</code>. Please be aware of potential side effects from the <strong>upgrade</strong>.</li>
-</ul>
 <h3 id="macos">macOS</h3>
 <p>The build needs CMake and compiler.</p>
 <pre><code>brew install cmake
@@ -287,10 +236,10 @@ A: Not officially, but you can still <strong>build</strong> it by running <code>
 </code></pre>
 <h2 id="generating-build-files">Generating Build Files</h2>
 <h3 id="windows">Windows</h3>
-<p>Ensure the corresponding &quot;MSVC v142 - VS 2019 (or 2022) C++ (<em>Arch</em>) build tools&quot; are installed for the target arch, e.g. selecting &quot;Desktop development with C++&quot; only includes x64/x86 but not ARM64 by default.</p>
-<p>VS 2019</p>
+<p>Ensure the corresponding &quot;MSVC v142 - VS 2026 (or 2022) C++ (<em>Arch</em>) build tools&quot; are installed for the target arch, e.g. selecting &quot;Desktop development with C++&quot; only includes x64/x86 but not ARM64 by default.
+VS 2026</p>
 <pre><code>mkdir build &amp;&amp; cd build
-cmake -G 'Visual Studio 16 2019' -A x64 ..
+cmake -G 'Visual Studio 18 2026' -A x64 ..
 </code></pre>
 <p>VS 2022</p>
 <pre><code>mkdir build &amp;&amp; cd build
@@ -322,6 +271,14 @@ cd vcpkg
 ./vcpkg install ms-quic
 </code></pre>
 <p>The <code>MsQuic</code> port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please <a href="https://github.com/Microsoft/vcpkg">create an issue or pull   request</a> on the vcpkg repository.</p>
+<h1 id="build-automation">Build Automation</h1>
+<p>MsQuic has several types and locations for build automation.</p>
+<h2 id="github">GitHub</h2>
+<p>The most comprehensive build automation is on GitHub and run via GitHub Action workflows (see <a href="https://github.com/microsoft/msquic/actions/workflows/build.yml">here</a>) on every PR and push to main. As of June 2025, over 200 different build configurations are run. These are meant to completely cover pretty much all build scenarios that are important to the project.</p>
+<p>These builds don't produce any official, signed artifacts. They are merely used for validation and then test (execution) purposes.</p>
+<h2 id="internal">Internal</h2>
+<p>Microsoft then has official build pipelines that run internally (private) in secure build containers to produce the official binaries. These are then signed and eventually officially released. The main pipeline may be found <a href="https://microsoft.visualstudio.com/undock/_build?definitionId=134439">here</a> (MSFT-only access required). This pipeline automatically picks up all main branch, release branch and tags from the public repo and mirrors them internally.</p>
+<p>There is an older pipeline <a href="https://mscodehub.visualstudio.com/msquic/_build?definitionId=1738">here</a>, which has <em>mostly</em> been superceded by the pipeline above. Issue <a href="https://github.com/microsoft/msquic/issues/4766">#4766</a> tracks the work to completely move things over. For instance, Linux package publishing still only functions in this older pipeline.</p>
 
 </article>
 

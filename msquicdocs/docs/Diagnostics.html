@@ -102,7 +102,7 @@ Currently tools only support Windows ETW.</p>
 <pre><code class="lang-sh">cmake -D QUIC_ENABLE_LOGGING=ON -D QUIC_LOGGING_TYPE=stdout ...
 </code></pre>
 <h4 id="lttng">LTTng</h4>
-<p>On Linux, MsQuic leverages <a href="https://lttng.org/features/">LTTng</a> for its logging. Some dependencies, such as babeltrace, lttng, and clog2text_lttng are required. The simplest way to install all dependencies is by running <code>./scripts/prepare-machine.ps1 -ForTest</code>, but if you only want to collect the traces on the machine, the <strong>minimal dependencies</strong> are:</p>
+<p>On Linux, MsQuic leverages <a href="https://lttng.org/features/">LTTng</a> for its logging. Some dependencies, such as babeltrace2 (or babeltrace), lttng, and clog2text_lttng are required. The simplest way to install all dependencies is by running <code>./scripts/prepare-machine.ps1 -ForTest</code>, but if you only want to collect the traces on the machine, the <strong>minimal dependencies</strong> are:</p>
 <pre><code>sudo apt-add-repository ppa:lttng/stable-2.13
 sudo apt-get update
 sudo apt-get install -y lttng-tools
@@ -237,7 +237,11 @@ if you see error &quot;A fatal error occurred. The folder [/usr/share/dotnet/hos
 follow steps in <a href="https://stackoverflow.com/questions/73753672/a-fatal-error-occurred-the-folder-usr-share-dotnet-host-fxr-does-not-exist">https://stackoverflow.com/questions/73753672/a-fatal-error-occurred-the-folder-usr-share-dotnet-host-fxr-does-not-exist</a></p>
 </blockquote>
 <p>To convert the trace, you can use the following commands:</p>
-<pre><code>babeltrace --names all ./msquic_lttng/* &gt; quic.babel.txt
+<pre><code># Using babeltrace2 (preferred)
+babeltrace2 --names all ./msquic_lttng/* &gt; quic.babel.txt
+# OR using babeltrace (fallback)
+babeltrace --names all ./msquic_lttng/* &gt; quic.babel.txt
+
 ~/.dotnet/tools/clog2text_lttng -i quic.babel.txt -s clog.sidecar -o quic.log --showTimestamp --showCpuInfo
 </code></pre>
 <blockquote>
@@ -265,41 +269,149 @@ MsQuic-&gt;GetParam(
     &amp;BufferLength,
     Counters);
 </code></pre>
-<p>Each of the counters available is described here:
-Counter | Description
---------|------------
-QUIC_PERF_COUNTER_CONN_CREATED | Total connections ever allocated
-QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL | Total connections that failed during handshake
-QUIC_PERF_COUNTER_CONN_APP_REJECT | Total connections rejected by the application
-QUIC_PERF_COUNTER_CONN_RESUMED | Total connections resumed
-QUIC_PERF_COUNTER_CONN_ACTIVE | Connections currently allocated
-QUIC_PERF_COUNTER_CONN_CONNECTED | Connections currently in the connected state
-QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS | Total connections shutdown with a protocol error
-QUIC_PERF_COUNTER_CONN_NO_ALPN | Total connection attempts with no matching ALPN
-QUIC_PERF_COUNTER_STRM_ACTIVE | Current streams allocated
-QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST | Total suspected packets lost
-QUIC_PERF_COUNTER_PKTS_DROPPED | Total packets dropped for any reason
-QUIC_PERF_COUNTER_PKTS_DECRYPTION_FAIL | Total packets with decryption failures
-QUIC_PERF_COUNTER_UDP_RECV | Total UDP datagrams received
-QUIC_PERF_COUNTER_UDP_SEND | Total UDP datagrams sent
-QUIC_PERF_COUNTER_UDP_RECV_BYTES | Total UDP payload bytes received
-QUIC_PERF_COUNTER_UDP_SEND_BYTES | Total UDP payload bytes sent
-QUIC_PERF_COUNTER_UDP_RECV_EVENTS | Total UDP receive events
-QUIC_PERF_COUNTER_UDP_SEND_CALLS | Total UDP send API calls
-QUIC_PERF_COUNTER_APP_SEND_BYTES | Total bytes sent by applications
-QUIC_PERF_COUNTER_APP_RECV_BYTES | Total bytes received by applications
-QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH | Current connections queued for processing
-QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH | Current connection operations queued
-QUIC_PERF_COUNTER_CONN_OPER_QUEUED | Total connection operations queued ever
-QUIC_PERF_COUNTER_CONN_OPER_COMPLETED | Total connection operations processed ever
-QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH | Current worker operations queued
-QUIC_PERF_COUNTER_WORK_OPER_QUEUED | Total worker operations queued ever
-QUIC_PERF_COUNTER_WORK_OPER_COMPLETED | Total worker operations processed ever
-QUIC_PERF_COUNTER_PATH_VALIDATED | Total path challenges that succeed ever
-QUIC_PERF_COUNTER_PATH_FAILURE | Total path challenges that fail ever
-QUIC_PERF_COUNTER_SEND_STATELESS_RESET | Total stateless reset packets sent ever
-QUIC_PERF_COUNTER_SEND_STATELESS_RETRY | Total stateless retry packets sent ever
-QUIC_PERF_COUNTER_CONN_LOAD_REJECT | Total connections rejected due to worker load.</p>
+<p>Each of the counters available is described here:</p>
+<table>
+<thead>
+<tr>
+<th>Counter</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>QUIC_PERF_COUNTER_CONN_CREATED</td>
+<td>Total connections ever allocated</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL</td>
+<td>Total connections that failed during handshake</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_CONN_APP_REJECT</td>
+<td>Total connections rejected by the application</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_CONN_RESUMED</td>
+<td>Total connections resumed</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_CONN_ACTIVE</td>
+<td>Connections currently allocated</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_CONN_CONNECTED</td>
+<td>Connections currently in the connected state</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS</td>
+<td>Total connections shutdown with a protocol error</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_CONN_NO_ALPN</td>
+<td>Total connection attempts with no matching ALPN</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_STRM_ACTIVE</td>
+<td>Current streams allocated</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST</td>
+<td>Total suspected packets lost</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_PKTS_DROPPED</td>
+<td>Total packets dropped for any reason</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_PKTS_DECRYPTION_FAIL</td>
+<td>Total packets with decryption failures</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_UDP_RECV</td>
+<td>Total UDP datagrams received</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_UDP_SEND</td>
+<td>Total UDP datagrams sent</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_UDP_RECV_BYTES</td>
+<td>Total UDP payload bytes received</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_UDP_SEND_BYTES</td>
+<td>Total UDP payload bytes sent</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_UDP_RECV_EVENTS</td>
+<td>Total UDP receive events</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_UDP_SEND_CALLS</td>
+<td>Total UDP send API calls</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_APP_SEND_BYTES</td>
+<td>Total bytes sent by applications</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_APP_RECV_BYTES</td>
+<td>Total bytes received by applications</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH</td>
+<td>Current connections queued for processing</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH</td>
+<td>Current connection operations queued</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_CONN_OPER_QUEUED</td>
+<td>Total connection operations queued ever</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_CONN_OPER_COMPLETED</td>
+<td>Total connection operations processed ever</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH</td>
+<td>Current worker operations queued</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_WORK_OPER_QUEUED</td>
+<td>Total worker operations queued ever</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_WORK_OPER_COMPLETED</td>
+<td>Total worker operations processed ever</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_PATH_VALIDATED</td>
+<td>Total path challenges that succeed ever</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_PATH_FAILURE</td>
+<td>Total path challenges that fail ever</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_SEND_STATELESS_RESET</td>
+<td>Total stateless reset packets sent ever</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_SEND_STATELESS_RETRY</td>
+<td>Total stateless retry packets sent ever</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_CONN_LOAD_REJECT</td>
+<td>Total connections rejected due to worker load.</td>
+</tr>
+<tr>
+<td>QUIC_PERF_COUNTER_LISTEN_QUEUE_DEPTH</td>
+<td>Current listeners queued for processing.</td>
+</tr>
+</tbody>
+</table>
 <h2 id="windows-performance-monitor">Windows Performance Monitor</h2>
 <p>On the latest version of Windows, these counters are also exposed via PerfMon.exe under the <code>QUIC Performance Diagnostics</code> category. The values exposed via PerfMon <strong>only represent kernel mode usages</strong> of MsQuic, and do not include user mode counters.</p>
 <p><img src="images/perfmon.png" alt=""></p>
@@ -349,7 +461,7 @@ if (Event-&gt;Type == QUIC_CONNECTION_EVENT_CONNECTED) {
 <p>Using a Wireshark version that supports QUIC is not mandatory but could help when troubleshooting. To know which version supports QUIC refer to <a href="https://github.com/quicwg/base-drafts/wiki/Tools#wireshark">https://github.com/quicwg/base-drafts/wiki/Tools#wireshark</a>.</p>
 <p>If you need a working example on how to generate the key log file please refer to the Sample at src/tools/sample/sample.c.</p>
 <h1 id="detailed-troubleshooting">Detailed Troubleshooting</h1>
-<p>For detailed trouble shooting steps please see the MsQuic <a href="TSG.html">Trouble Shooting Guide</a>.</p>
+<p>For detailed trouble shooting steps please see the MsQuic <a href="TSG.md">Trouble Shooting Guide</a>.</p>
 
 </article>
 
